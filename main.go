@@ -274,6 +274,17 @@ func caHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(caData)
 }
 
+// caDERHandler serves the CA certificate in DER format.
+func caDERHandler(w http.ResponseWriter, r *http.Request) {
+	if caCert == nil {
+		http.Error(w, "CA not loaded", http.StatusInternalServerError)
+		return
+	}
+	// The DER-encoded certificate is available as caCert.Raw.
+	w.Header().Set("Content-Type", "application/x-x509-ca-cert")
+	w.Write(caCert.Raw)
+}
+
 // blockHandler serves the block page.
 func blockHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Serving block page for %s", r.URL.String())
@@ -322,6 +333,8 @@ func main() {
 	mux.Handle("/webroot/", http.StripPrefix("/webroot/", http.FileServer(http.Dir("webroot"))))
 	// All other requests show the block page.
 	mux.HandleFunc("/", blockHandler)
+	// Route to serve the CA certificate in DER format.
+	mux.HandleFunc("/cert.cer", caDERHandler)
 
 	// Create a TLS configuration with our dynamic certificate callback.
 	tlsConfig := &tls.Config{
