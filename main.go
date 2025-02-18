@@ -57,35 +57,111 @@ const defaultBlockPageHTML = `<!doctype html>
   </body>
 </html>`
 
-// loadCA loads the CA certificate and key from the specified files.
-func loadCA(caCertPath, caKeyPath string) error {
-	caCertPEM, err := ioutil.ReadFile(caCertPath)
-	if err != nil {
-		return fmt.Errorf("failed to read CA cert: %w", err)
-	}
-	block, _ := pem.Decode(caCertPEM)
-	if block == nil {
-		return fmt.Errorf("failed to decode CA certificate PEM")
-	}
-	caCert, err = x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return fmt.Errorf("failed to parse CA certificate: %w", err)
-	}
+// generateAndSaveCA generates a new self-signed CA and writes the certificate and key to disk.
+func generateAndSaveCA(certPath, keyPath string) error {
+    // Generate a new RSA key for the CA (use a larger key for a CA)
+    key, err := rsa.GenerateKey(rand.Reader, 4096)
+    if err != nil {
+        return fmt.Errorf("failed to generate CA key: %w", err)
+    }
 
-	caKeyPEM, err := ioutil.ReadFile(caKeyPath)
-	if err != nil {
-		return fmt.Errorf("failed to read CA key: %w", err)
-	}
-	block, _ = pem.Decode(caKeyPEM)
-	if block == nil {
-		return fmt.Errorf("failed to decode CA key PEM")
-	}
-	caKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return fmt.Errorf("failed to parse CA key: %w", err)
-	}
-	return nil
+    // Create a certificate template for a CA.
+    serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+    if err != nil {
+        return fmt.Errorf("failed to generate serial number: %w", err)
+    }
+    template := x509.Certificate{
+        SerialNumber: serialNumber,
+        Subject: pkix.Name{
+            Organization: []string{"Dynamic MITM CA"},
+            CommonName:   "Dynamic MITM CA",
+        },
+        NotBefore:             time.Now().Add(-time.Hour),
+        NotAfter:              time.Now().Add(10 * 365 * 24 * time.Hour), // valid for 10 years
+        KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+        BasicConstraintsValid: true,
+        IsCA:                  true,
+    }
+
+    // Self-sign the certificate.
+    derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
+    if err != nil {
+        return fmt.Errorf("failed to create CA certificate: %w", err)
+    }
+
+    // Write the certificate to file.
+    certOut, err := os.Create(certPath)
+    if err != nil {
+        return fmt.Errorf("failed to create CA cert file: %w", err)
+    }
+    defer certOut.Close()
+    if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
+        return fmt.Errorf("failed to write CA cert: %w", err)
+    }
+
+    // Write the key to file.
+    keyOut, err := os.OpenFile(keyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+    if err != nil {
+        return fmt.Errorf("failed to create CA key file: %w", err)
+    }
+    defer keyOut.Close()
+    if err := pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}); err != nil {
+        return fmt.Errorf("failed to write CA key: %w", err)
+    }
+
+    // Assign the global variables.
+    caCert, err = x509.ParseCertificate(derBytes)
+    if err != nil {
+        return fmt.Errorf("failed to parse generated CA certificate: %w", err)
+    }
+    caKey = key
+
+    log.Printf("New CA generated and saved to %s and %s", certPath, keyPath)
+    return nil
 }
+
+// loadCA loads the CA certificate and key from the specified files,
+// or generates them if they do not exist.
+func loadCA(caCertPath, caKeyPath string) error {
+    // Try to read the CA certificate.
+    caCertPEM, err := ioutil.ReadFile(caCertPath)
+    if err != nil {
+        if os.IsNotExist(err) {
+            // CA certificate not found: generate a new one.
+            log.Printf("CA certificate not found at %s. Generating a new CA...", caCertPath)
+            return generateAndSaveCA(caCertPath, caKeyPath)
+        }
+        return fmt.Errorf("failed to read CA cert: %w", err)
+    }
+    block, _ := pem.Decode(caCertPEM)
+    if block == nil {
+        return fmt.Errorf("failed to decode CA certificate PEM")
+    }
+    caCert, err = x509.ParseCertificate(block.Bytes)
+    if err != nil {
+        return fmt.Errorf("failed to parse CA certificate: %w", err)
+    }
+
+    // Try to read the CA key.
+    caKeyPEM, err := ioutil.ReadFile(caKeyPath)
+    if err != nil {
+        if os.IsNotExist(err) {
+            // If key not found but cert exists, that's an error.
+            return fmt.Errorf("CA key not found at %s", caKeyPath)
+        }
+        return fmt.Errorf("failed to read CA key: %w", err)
+    }
+    block, _ = pem.Decode(caKeyPEM)
+    if block == nil {
+        return fmt.Errorf("failed to decode CA key PEM")
+    }
+    caKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+    if err != nil {
+        return fmt.Errorf("failed to parse CA key: %w", err)
+    }
+    return nil
+}
+
 
 // loadBlockPage loads the block page HTML from a file.
 func loadBlockPage() string {
