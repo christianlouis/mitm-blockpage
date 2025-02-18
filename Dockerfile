@@ -6,6 +6,12 @@ WORKDIR /app
 # Copy the source code and directories.
 COPY . .
 
+# If no go.mod file exists, initialize a Go module.
+RUN if [ ! -f go.mod ]; then \
+      go mod init github.com/yourusername/dynamic_mitm_server; \
+    fi && \
+    go mod tidy
+
 # Build the binary.
 RUN CGO_ENABLED=0 go build -o dynamic_mitm_server .
 
