@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 )
@@ -199,7 +198,7 @@ func caHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(caData)
 }
 
-// blockHandler serves the fancy block page.
+// blockHandler serves the block page.
 func blockHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Serving block page for %s", r.URL.String())
 	w.Header().Set("Content-Type", "text/html")
