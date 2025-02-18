@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  dynamic-dns:
+    build: .
+    container_name: dynamic_dns_server
+    ports:
+      - "${LISTEN_PORT:-443}:443"
+    environment:
+      # Listening parameters.
+      - LISTEN_ADDR=0.0.0.0
+      - LISTEN_PORT=443
+      # CA certificate and key paths (inside the container).
+      - CA_CERT_PATH=ssl/ca_cert.pem
+      - CA_KEY_PATH=ssl/ca_key.pem
+      # Block page file path.
+      - BLOCK_PAGE_PATH=webroot/block.html
+    volumes:
+      # Mount the directory containing your CA files.
+      - ./ssl:/root/ssl
+      # Mount your custom webroot (containing block.html, CSS, images, etc.)
+      - ./webroot:/root/webroot
+    restart: unless-stopped
