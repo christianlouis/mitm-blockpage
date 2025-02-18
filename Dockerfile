@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Build the binary.
-RUN CGO_ENABLED=0 go build -o dynamic_dns_server .
+RUN CGO_ENABLED=0 go build -o dynamic_mitm_server .
 
 # Final minimal image.
 FROM alpine:latest
@@ -15,11 +15,11 @@ FROM alpine:latest
 WORKDIR /root/
 
 # Copy the binary and the ssl & webroot directories.
-COPY --from=builder /app/dynamic_dns_server .
+COPY --from=builder /app/dynamic_mitm_server .
 COPY --from=builder /app/ssl ./ssl
 COPY --from=builder /app/webroot ./webroot
 
 # Expose the port (default 443).
 EXPOSE 443
 
-ENTRYPOINT ["./dynamic_dns_server"]
+ENTRYPOINT ["./dynamic_mitm_server"]
