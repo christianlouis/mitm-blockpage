@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Access Blocked</title>
+    <!-- Materialize CSS -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+      rel="stylesheet"
+    />
+    <!-- Material Icons -->
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+        background: #f5f5f5;
+      }
+      main {
+        flex: 1 0 auto;
+      }
+      .container {
+        margin-top: 5rem;
+      }
+      .card-panel {
+        padding: 2rem;
+        text-align: center;
+      }
+      .blocked-icon {
+        font-size: 4rem;
+        color: #e53935;
+      }
+      .blocked-title {
+        font-size: 2.5rem;
+        margin: 1rem 0;
+      }
+      .blocked-url {
+        font-size: 1.2rem;
+        color: #555;
+        word-break: break-all;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="container">
+        <div class="card-panel z-depth-3">
+          <i class="material-icons blocked-icon">block</i>
+          <h2 class="blocked-title">Access Blocked</h2>
+          <p>This site has been blocked by your network policy.</p>
+          <p>If you believe this is an error, please contact your network administrator.</p>
+          <h5>Requested URL:</h5>
+          <p id="requestedUrl" class="blocked-url"></p>
+        </div>
+      </div>
+    </main>
+    <!-- Materialize JS (optional for any interactive components) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script>
+      // On page load, insert the current URL into the block page.
+      document.addEventListener("DOMContentLoaded", function () {
+        var urlElement = document.getElementById("requestedUrl");
+        if (urlElement) {
+          urlElement.textContent = window.location.href;
+        }
+      });
+    </script>
+  </body>
+</html>
