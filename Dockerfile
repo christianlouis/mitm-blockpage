@@ -6,6 +6,9 @@ WORKDIR /app
 # Copy the source code and directories.
 COPY . .
 
+# Ensure that the "ssl" and "webroot" directories exist.
+RUN mkdir -p ssl webroot
+
 # If no go.mod file exists, initialize a Go module.
 RUN if [ ! -f go.mod ]; then \
       go mod init github.com/yourusername/dynamic_mitm_server; \
