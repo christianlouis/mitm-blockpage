@@ -19,7 +19,7 @@ RUN if [ ! -f go.mod ]; then \
 RUN CGO_ENABLED=0 go build -o dynamic_mitm_server .
 
 # Final minimal image.
-FROM alpine:3.23.3
+FROM alpine:3.23.4
 
 WORKDIR /root/
 
