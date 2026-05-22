@@ -1,34 +1,37 @@
-# Build stage using an official Go image.
-FROM golang:1.20 AS builder
+FROM golang:1.26-alpine AS builder
+
+WORKDIR /src
+
+COPY go.mod ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/mitm-blockpage .
+
+FROM alpine:3.23.4
+
+RUN addgroup -S app \
+    && adduser -S -G app app \
+    && mkdir -p /app/ssl /app/webroot \
+    && chown -R app:app /app
 
 WORKDIR /app
 
-# Copy the source code and directories.
-COPY . .
+COPY --from=builder /out/mitm-blockpage ./mitm-blockpage
+COPY --chown=app:app webroot ./webroot
 
-# Ensure that the "ssl" and "webroot" directories exist.
-RUN mkdir -p ssl webroot
+ENV LISTEN_ADDR=0.0.0.0 \
+    LISTEN_PORT=8443 \
+    CA_CERT_PATH=/app/ssl/ca_cert.pem \
+    CA_KEY_PATH=/app/ssl/ca_key.pem \
+    BLOCK_PAGE_PATH=/app/webroot/block.html \
+    WEBROOT_DIR=/app/webroot
 
-# If no go.mod file exists, initialize a Go module.
-RUN if [ ! -f go.mod ]; then \
-      go mod init github.com/yourusername/dynamic_mitm_server; \
-    fi && \
-    go mod tidy
+EXPOSE 8443
 
-# Build the binary.
-RUN CGO_ENABLED=0 go build -o dynamic_mitm_server .
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget --no-check-certificate -qO- https://127.0.0.1:8443/healthz >/dev/null || exit 1
 
-# Final minimal image.
-FROM alpine:3.23.4
+USER app
 
-WORKDIR /root/
-
-# Copy the binary and the ssl & webroot directories.
-COPY --from=builder /app/dynamic_mitm_server .
-COPY --from=builder /app/ssl ./ssl
-COPY --from=builder /app/webroot ./webroot
-
-# Expose the port (default 443).
-EXPOSE 443
-
-ENTRYPOINT ["./dynamic_mitm_server"]
+ENTRYPOINT ["./mitm-blockpage"]

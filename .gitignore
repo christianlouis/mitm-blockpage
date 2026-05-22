@@ -14,6 +14,10 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# Local build output
+/mitm-blockpage
+/dynamic_mitm_server
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
@@ -23,3 +27,6 @@ go.work.sum
 
 # env file
 .env
+
+# Generated local certificate authority material
+/ssl/

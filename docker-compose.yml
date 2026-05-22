@@ -1,23 +1,26 @@
-version: "3.8"
-
 services:
-  dynamic-dns:
+  mitm-blockpage:
     build: .
-    container_name: dynamic_dns_server
+    container_name: mitm-blockpage
     ports:
-      - "${LISTEN_PORT:-443}:443"
+      - "${HOST_PORT:-443}:8443"
     environment:
-      # Listening parameters.
-      - LISTEN_ADDR=0.0.0.0
-      - LISTEN_PORT=443
-      # CA certificate and key paths (inside the container).
-      - CA_CERT_PATH=ssl/ca_cert.pem
-      - CA_KEY_PATH=ssl/ca_key.pem
-      # Block page file path.
-      - BLOCK_PAGE_PATH=webroot/block.html
+      LISTEN_ADDR: 0.0.0.0
+      LISTEN_PORT: 8443
+      CA_CERT_PATH: /app/ssl/ca_cert.pem
+      CA_KEY_PATH: /app/ssl/ca_key.pem
+      BLOCK_PAGE_PATH: /app/webroot/block.html
+      WEBROOT_DIR: /app/webroot
     volumes:
-      # Mount the directory containing your CA files.
-      - ./ssl:/root/ssl
-      # Mount your custom webroot (containing block.html, CSS, images, etc.)
-      - ./webroot:/root/webroot
+      - ca-data:/app/ssl
+      - ./webroot:/app/webroot:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-check-certificate -qO- https://127.0.0.1:8443/healthz >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
+
+volumes:
+  ca-data:

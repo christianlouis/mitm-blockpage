@@ -1,0 +1,7 @@
+.git
+.github
+ssl
+*.test
+*.out
+README.md
+ROADMAP.md
