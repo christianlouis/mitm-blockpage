@@ -22,8 +22,6 @@ COPY --chown=app:app webroot ./webroot
 
 ENV LISTEN_ADDR=0.0.0.0 \
     LISTEN_PORT=8443 \
-    CA_CERT_PATH=/app/ssl/ca_cert.pem \
-    CA_KEY_PATH=/app/ssl/ca_key.pem \
     BLOCK_PAGE_PATH=/app/webroot/block.html \
     WEBROOT_DIR=/app/webroot
 
