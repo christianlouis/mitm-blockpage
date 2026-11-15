@@ -1,4 +1,4 @@
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27.4-alpine3.23 AS builder
 
 WORKDIR /src
 
@@ -8,7 +8,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/mitm-blockpage .
 
-FROM alpine:3.23.4
+FROM alpine:3.23.8
 
 RUN addgroup -S app \
     && adduser -S -G app app \
